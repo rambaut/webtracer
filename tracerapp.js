@@ -589,7 +589,9 @@ function renderSummaryTable() {
     const selectedTraces = [];
     
     app.selectedTraceIds.forEach(traceId => {
-        const [fileId, traceName] = traceId.split(':');
+        const idx = traceId.indexOf(':');
+        const fileId = traceId.substring(0, idx);
+        const traceName = traceId.substring(idx + 1);
         const traceFile = app.tracer.getTraceFile(parseFloat(fileId));
         if (traceFile) {
             const trace = traceFile.getTrace(traceName);
@@ -729,7 +731,9 @@ function renderDensityPlot() {
     const selectedTraces = [];
     
     app.selectedTraceIds.forEach(traceId => {
-        const [fileId, traceName] = traceId.split(':');
+        const idx = traceId.indexOf(':');
+        const fileId = traceId.substring(0, idx);
+        const traceName = traceId.substring(idx + 1);
         const traceFile = app.tracer.getTraceFile(parseFloat(fileId));
         if (traceFile) {
             const trace = traceFile.getTrace(traceName);
