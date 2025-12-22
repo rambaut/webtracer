@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTracer - MCMC Visualization</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .content-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .left-panel {
+            width: 350px;
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+        }
+        
+        .right-panel {
+            flex: 1;
+            background-color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #visualizationTabs {
+            border-bottom: 1px solid #dee2e6;
+            padding-left: 15px;
+            background-color: #f8f9fa;
+            flex-shrink: 0;
+        }
+        
+        .tab-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .tab-pane {
+            height: 100%;
+            overflow: auto;
+        }
+        
+        .summary-content {
+            height: 100%;
+        }
+        
+        .summary-table {
+            font-size: 0.875rem;
+        }
+        
+        .summary-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .summary-table td {
+            white-space: nowrap;
+            text-align: right;
+        }
+        
+        .summary-table td:first-child {
+            font-weight: 600;
+            text-align: left;
+            background-color: #f8f9fa;
+        }
+        
+        .plot-container {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+        }
+        
+        .files-section {
+            flex: 0 0 50%;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #dee2e6;
+            overflow: hidden;
+        }
+        
+        .columns-section {
+            flex: 0 0 50%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background-color: #e9ecef;
+            padding: 10px 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+        
+        .file-table, .column-table {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        
+        .file-table tbody tr {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .file-table tbody tr:hover {
+            background-color: #e7f1ff !important;
+        }
+        
+        .file-table tbody tr.selected {
+            background-color: #b6d7ff !important;
+        }
+        
+        .file-table tbody tr.selected:hover {
+            background-color: #a0cbff !important;
+        }
+        
+        .column-table tbody tr {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .table.column-table tbody tr:hover td {
+            background-color: #e7f1ff !important;
+        }
+        
+        .table.column-table tbody tr.selected td {
+            background-color: #b6d7ff !important;
+        }
+        
+        .table.column-table tbody tr.selected:hover td {
+            background-color: #a0cbff !important;
+        }
+        
+        .table.file-table tbody tr:hover td {
+            background-color: #e7f1ff !important;
+        }
+        
+        .table.file-table tbody tr.selected td {
+            background-color: #b6d7ff !important;
+        }
+        
+        .table.file-table tbody tr.selected:hover td {
+            background-color: #a0cbff !important;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #6c757d;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px;
+            background-color: #f8f9fa;
+            transition: all 0.3s;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+        
+        .drop-zone i {
+            font-size: 2rem;
+            color: #6c757d;
+        }
+        
+        .btn-load {
+            margin: 5px 15px;
+        }
+        
+        .visualization-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            font-size: 1.2rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+        }
+        
+        .horizontal-divider {
+            height: 5px;
+            background-color: #dee2e6;
+            cursor: ns-resize;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .horizontal-divider:hover {
+            background-color: #adb5bd;
+        }
+        
+        .vertical-divider {
+            width: 5px;
+            background-color: #dee2e6;
+            cursor: ew-resize;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .vertical-divider:hover {
+            background-color: #adb5bd;
+        }
+        
+        .burnin-input {
+            width: 70px;
+            padding: 1px 6px;
+            font-size: 0.875rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            text-align: right;
+            height: 24px;
+            line-height: 1.5;
+        }
+        
+        /* Remove spinner controls from number input */
+        .burnin-input::-webkit-inner-spin-button,
+        .burnin-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .burnin-input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        .burnin-input:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <nav class="navbar navbar-dark bg-dark">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">
+                    <i class="bi bi-graph-up"></i> WebTracer - MCMC Visualization
+                </span>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <div class="content-container">
+            <!-- Left Panel -->
+            <div class="left-panel" id="leftPanel">
+                <!-- Files Section -->
+                <div class="files-section" id="filesSection">
+                    <div class="section-header">
+                        <span><i class="bi bi-file-earmark-text"></i> Loaded Files</span>
+                        <button class="btn btn-sm btn-primary" id="loadButton">
+                            <i class="bi bi-folder-plus"></i> Load
+                        </button>
+                    </div>
+                    <div class="table-container" id="filesTableContainer">
+                        <div class="drop-zone" id="dropZone">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <p class="mt-2 mb-0">Drag & drop CSV/TSV files here</p>
+                            <p class="text-muted small">or click the Load button</p>
+                        </div>
+                        <table class="table table-sm file-table d-none" id="fileTable">
+                            <thead>
+                                <tr>
+                                    <th>TraceFile</th>
+                                    <th class="text-end">States</th>
+                                    <th class="text-end">Samples</th>
+                                    <th class="text-end">Burnin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fileTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Horizontal Divider -->
+                <div class="horizontal-divider" id="horizontalDivider"></div>
+                
+                <!-- Columns Section -->
+                <div class="columns-section" id="columnsSection">
+                    <div class="section-header">
+                        <span><i class="bi bi-list-columns"></i> Columns</span>
+                    </div>
+                    <div class="table-container">
+                        <div class="text-muted text-center mt-4" id="noFileSelected">
+                            <i class="bi bi-info-circle"></i>
+                            <p>Select a file to view columns</p>
+                        </div>
+                        <table class="table table-sm column-table d-none" id="columnTable">
+                            <thead>
+                                <tr>
+                                    <th>Column Name</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="columnTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vertical Divider -->
+            <div class="vertical-divider" id="verticalDivider"></div>
+            
+            <!-- Right Panel -->
+            <div class="right-panel" id="rightPanel">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs" id="visualizationTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-panel" type="button" role="tab" aria-controls="summary-panel" aria-selected="true">
+                            Summary
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="density-tab" data-bs-toggle="tab" data-bs-target="#density-panel" type="button" role="tab" aria-controls="density-panel" aria-selected="false">
+                            Density
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="joint-density-tab" data-bs-toggle="tab" data-bs-target="#joint-density-panel" type="button" role="tab" aria-controls="joint-density-panel" aria-selected="false">
+                            Joint-Density
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="trace-tab" data-bs-toggle="tab" data-bs-target="#trace-panel" type="button" role="tab" aria-controls="trace-panel" aria-selected="false">
+                            Trace
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="visualizationTabContent">
+                    <div class="tab-pane fade show active" id="summary-panel" role="tabpanel" aria-labelledby="summary-tab">
+                        <div class="summary-content">
+                            <div id="summaryPlaceholder" class="visualization-placeholder">
+                                <div class="text-center">
+                                    <i class="bi bi-table" style="font-size: 3rem;"></i>
+                                    <p>Summary Statistics</p>
+                                    <p class="text-muted small">Select one or more traces to view statistics</p>
+                                </div>
+                            </div>
+                            <div id="summaryTableContainer" class="d-none p-3">
+                                <table class="table table-sm table-bordered summary-table" id="summaryTable">
+                                    <thead>
+                                        <tr id="summaryTableHeader">
+                                            <th>Statistic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="summaryTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="density-panel" role="tabpanel" aria-labelledby="density-tab">
+                        <div id="densityPlaceholder" class="visualization-placeholder">
+                            <div class="text-center">
+                                <i class="bi bi-graph-up" style="font-size: 3rem;"></i>
+                                <p>Density Plot</p>
+                                <p class="text-muted small">Select one or more traces to view density distributions</p>
+                            </div>
+                        </div>
+                        <div id="densityPlotContainer" class="plot-container d-none"></div>
+                    </div>
+                    <div class="tab-pane fade" id="joint-density-panel" role="tabpanel" aria-labelledby="joint-density-tab">
+                        <div class="visualization-placeholder">
+                            <div class="text-center">
+                                <i class="bi bi-grid-3x3" style="font-size: 3rem;"></i>
+                                <p>Joint-Density Plot</p>
+                                <p class="text-muted small">To be implemented</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="trace-panel" role="tabpanel" aria-labelledby="trace-tab">
+                        <div class="visualization-placeholder">
+                            <div class="text-center">
+                                <i class="bi bi-activity" style="font-size: 3rem;"></i>
+                                <p>Trace Plot</p>
+                                <p class="text-muted small">To be implemented</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" class="file-input" multiple accept=".csv,.tsv,.txt,.log">
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- Application JS -->
+    <script src="trace.js"></script>
+    <script src="tracefile.js"></script>
+    <script src="tracer.js"></script>
+    <script src="tracerapp.js"></script>
+</body>
+</html>
