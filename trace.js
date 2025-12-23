@@ -215,30 +215,29 @@ class Trace {
     _calculateACT(values, mean) {
         const n = values.length;
         if (n < 2) return 1;
-        
-        // Calculate lag-1 autocorrelation
-        let numerator = 0;
+
+        // Denominator: sum of squared deviations
         let denominator = 0;
-        
-        for (let i = 0; i < n - 1; i++) {
-            numerator += (values[i] - mean) * (values[i + 1] - mean);
-        }
-        
         for (let i = 0; i < n; i++) {
             denominator += Math.pow(values[i] - mean, 2);
         }
-        
         if (denominator === 0) return 1;
-        
-        const rho1 = numerator / denominator;
-        
-        // Simplified ACT calculation
-        // Only calculate if rho1 is positive and less than 1
-        if (rho1 >= 0 && rho1 < 1) {
-            const act = 1 + 2 * rho1 / (1 - rho1);
-            return Math.max(1, Math.min(act, n)); // Clamp between 1 and n
+
+        // Find the first lag k where autocorrelation rho_k <= 0.
+        // Limit search for performance.
+        const maxLag = Math.min(n - 1, 1000);
+        for (let k = 1; k <= maxLag; k++) {
+            let num = 0;
+            for (let i = 0; i < n - k; i++) {
+                num += (values[i] - mean) * (values[i + k] - mean);
+            }
+            const rho = num / denominator;
+            if (rho <= 0) {
+                return Math.max(1, k);
+            }
         }
-        
-        return 1;
+
+        // If no non-positive autocorrelation found within maxLag, return maxLag
+        return maxLag;
     }
 }
