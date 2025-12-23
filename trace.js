@@ -167,9 +167,6 @@ class Trace {
         const variance = squaredDiffs.reduce((a, b) => a + b, 0) / n;
         const stdDev = Math.sqrt(variance);
         
-        // Standard error (without ACT correction for now)
-        const stdErr = stdDev / Math.sqrt(n);
-        
         // Min and max
         const min = Math.min(...effectiveValues);
         const max = Math.max(...effectiveValues);
@@ -190,10 +187,14 @@ class Trace {
         
         // ACT (simplified calculation using lag-1 autocorrelation)
         const act = this._calculateACT(effectiveValues, mean);
-        
+
         // ESS
         const ess = act > 0 ? n / act : n;
-        
+
+        // Standard error of the mean (accounting for autocorrelation):
+        // stdErrMean = stdDev * sqrt(ACT / n)
+        const stdErr = stdDev * Math.sqrt(act / n);
+
         this._stats = {
             mean,
             median,
