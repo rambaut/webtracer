@@ -7,7 +7,7 @@ class Trace {
         this.values = values;
         this.type = type; // 'continuous', 'integer', or 'discrete'
         this._stats = null; // Cached statistics
-        this.burnin = 0; // Burnin value (number of samples to exclude from start)
+        this.burninSamples = 0; // Burnin value in samples (number of samples to exclude from start)
     }
     
     getName() {
@@ -92,13 +92,14 @@ class Trace {
         return this.getStatistics().count;
     }
     
-    setBurnin(burnin) {
-        this.burnin = burnin;
+    // Set burnin in samples (number of samples to skip)
+    setBurninSamples(burninSamples) {
+        this.burninSamples = Math.max(0, Math.floor(burninSamples));
         this._stats = null; // Invalidate cached statistics
     }
-    
-    getBurnin() {
-        return this.burnin;
+
+    getBurninSamples() {
+        return this.burninSamples;
     }
     
     /**
@@ -129,11 +130,9 @@ class Trace {
             return;
         }
         
-        // Apply burnin if set
-        // For now, treat burnin as number of samples to skip from the beginning
-        // TODO: This should be based on actual state values
+        // Apply burnin in samples if set
         let effectiveValues = numericValues;
-        const burninSamples = Math.min(this.burnin, numericValues.length - 1);
+        const burninSamples = Math.min(this.burninSamples, numericValues.length - 1);
         if (burninSamples > 0) {
             effectiveValues = numericValues.slice(burninSamples);
         }

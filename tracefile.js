@@ -2,10 +2,11 @@
  * TraceFile class - represents a file containing multiple traces
  */
 class TraceFile {
-    constructor(id, name, stateColumn) {
+    constructor(id, name, stateColumn, stateInterval = 1) {
         this.id = id;
         this.name = name;
         this.stateColumn = stateColumn; // Name of the state column
+        this.stateInterval = stateInterval; // Number of state units between samples
         this.traces = new Map(); // Map of trace name -> Trace object
         this.states = []; // State values
         this.burnin = 0; // Burnin value (in state units, not sample count)
@@ -64,12 +65,20 @@ class TraceFile {
         // Convert last state to number
         return parseFloat(this.states[this.states.length - 1]);
     }
+
+    getStateInterval() {
+        return this.stateInterval;
+    }
     
     setBurnin(burnin) {
         this.burnin = burnin;
-        // Propagate to all traces
+        // Compute burnin in samples based on state interval and propagate to all traces
+        const interval = this.stateInterval || 1;
+        const burninSamples = Math.floor(burnin / interval);
         this.traces.forEach(trace => {
-            trace.setBurnin(burnin);
+            if (typeof trace.setBurninSamples === 'function') {
+                trace.setBurninSamples(burninSamples);
+            }
         });
     }
     

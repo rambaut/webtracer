@@ -171,7 +171,7 @@ function loadFile(file) {
         if (parsedData) {
             // Create TraceFile object
             const fileId = Date.now() + Math.random();
-            const traceFile = new TraceFile(fileId, file.name, parsedData.stateColumn);
+            const traceFile = new TraceFile(fileId, file.name, parsedData.stateColumn, parsedData.stateInterval);
             
             // Set state values
             traceFile.setStates(parsedData.states);
@@ -263,12 +263,13 @@ function parseFile(content, filename) {
         // Extract state values
         const states = data.map(row => row[stateColumn]);
         
-        // Validate state column
+        // Validate state column (also returns interval)
         const stateValidation = validateStateColumn(states, filename);
         if (!stateValidation.valid) {
             alert(stateValidation.message);
             return null;
         }
+        const stateInterval = stateValidation.interval || 1;
         
         // Process columns (excluding the first column which is the state number)
         const columns = headers.slice(1).map(name => {
@@ -284,7 +285,8 @@ function parseFile(content, filename) {
         return {
             states: states,
             columns: columns,
-            stateColumn: stateColumn
+            stateColumn: stateColumn,
+            stateInterval: stateInterval
         };
     } catch (error) {
         alert(`Error parsing file "${filename}": ${error.message}`);
@@ -351,7 +353,7 @@ function validateStateColumn(states, filename) {
         }
     }
     
-    return { valid: true };
+    return { valid: true, interval: expectedInterval };
 }
 
 // Detect column type (continuous, integer, or discrete)
@@ -767,7 +769,7 @@ function renderDensityPlot() {
         // Get values after applying burnin
         const trace = item.trace;
         const allValues = trace.getValues().map(v => parseFloat(v)).filter(v => !isNaN(v));
-        const burninSamples = Math.min(trace.getBurnin(), allValues.length - 1);
+        const burninSamples = Math.min(trace.getBurninSamples(), allValues.length - 1);
         const values = burninSamples > 0 ? allValues.slice(burninSamples) : allValues;
         
         if (values.length === 0) return;
