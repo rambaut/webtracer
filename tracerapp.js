@@ -181,7 +181,8 @@ function loadFile(file) {
                 const trace = new Trace(
                     columnData.name,
                     columnData.values,
-                    columnData.type
+                    columnData.type,
+                    parsedData.stateInterval
                 );
                 traceFile.addTrace(trace);
             });

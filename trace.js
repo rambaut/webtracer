@@ -2,12 +2,13 @@
  * Trace class - represents a single column of values from an MCMC chain
  */
 class Trace {
-    constructor(name, values, type) {
+    constructor(name, values, type, stateInterval = 1) {
         this.name = name;
         this.values = values;
         this.type = type; // 'continuous', 'integer', or 'discrete'
         this._stats = null; // Cached statistics
         this.burninSamples = 0; // Burnin value in samples (number of samples to exclude from start)
+        this.stateInterval = stateInterval; // number of state units per sample
     }
     
     getName() {
@@ -185,15 +186,18 @@ class Trace {
         const hpd95Lower = sorted[lowerIndex];
         const hpd95Upper = sorted[upperIndex];
         
-        // ACT (simplified calculation using lag-1 autocorrelation)
-        const act = this._calculateACT(effectiveValues, mean);
+        // ACT (in samples): find lag (k) at which autocorrelation first hits <= 0
+        const actSamples = this._calculateACT(effectiveValues, mean);
 
-        // ESS
-        const ess = act > 0 ? n / act : n;
+        // ESS uses ACT in samples
+        const ess = actSamples > 0 ? n / actSamples : n;
 
-        // Standard error of the mean (accounting for autocorrelation):
-        // stdErrMean = stdDev * sqrt(ACT / n)
-        const stdErr = stdDev * Math.sqrt(act / n);
+        // Standard error of the mean (accounting for autocorrelation in samples):
+        // stdErrMean = stdDev * sqrt(ACT_samples / n)
+        const stdErr = stdDev * Math.sqrt(actSamples / n);
+
+        // Expose ACT in state units (states = samples * stateInterval)
+        const actStates = actSamples * (this.stateInterval || 1);
 
         this._stats = {
             mean,
@@ -206,7 +210,7 @@ class Trace {
             range,
             hpd95Lower,
             hpd95Upper,
-            act,
+            act: actStates,
             ess,
             count: n
         };
@@ -225,7 +229,7 @@ class Trace {
 
         // Find the first lag k where autocorrelation rho_k <= 0.
         // Limit search for performance.
-        const maxLag = Math.min(n - 1, 1000);
+        const maxLag = n - 1;
         for (let k = 1; k <= maxLag; k++) {
             let num = 0;
             for (let i = 0; i < n - k; i++) {
@@ -233,7 +237,7 @@ class Trace {
             }
             const rho = num / denominator;
             if (rho <= 0) {
-                return Math.max(1, k);
+                return k;
             }
         }
 
